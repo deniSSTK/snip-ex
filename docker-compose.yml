@@ -1,0 +1,39 @@
+services:
+  app:
+    build:
+      context: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      API_KEY: ${API_KEY:-secret-token-123}
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-ship_ex_dev}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    command: sh -c "mix ecto.migrate && mix phx.server"
+
+  db:
+    image: postgres:16-alpine
+    container_name: ship_ex_db
+    restart: on-failure:3
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-ship_ex_dev}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
